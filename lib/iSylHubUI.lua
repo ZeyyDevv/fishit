@@ -4,6 +4,7 @@ local LoginScreen = {}
 -- Services
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
 
 -- Helper function to create UI element
 local function createElement(className, props)
@@ -20,6 +21,119 @@ local function fadeInItems(parent)
             TweenService:Create(v, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
         end
     end
+end
+
+-- Create Maintenance Screen
+local function createMaintenanceScreen(onClose)
+    local Player = Players.LocalPlayer
+    local screen = createElement("ScreenGui", {
+        Name = "MaintenanceScreen",
+        ResetOnSpawn = false,
+        Parent = Player:WaitForChild("PlayerGui")
+    })
+    
+    local frame = createElement("Frame", {
+        Size = UDim2.fromOffset(380, 280),
+        Position = UDim2.fromScale(0.5, 0.5),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundColor3 = Color3.fromRGB(18, 18, 18),
+        BorderSizePixel = 0,
+        ClipsDescendants = true,
+        Parent = screen
+    })
+    
+    createElement("UICorner", {CornerRadius = UDim.new(0, 8), Parent = frame})
+    createElement("UIStroke", {Thickness = 1, Color = Color3.fromRGB(60, 0, 0), Transparency = 0.5, Parent = frame})
+    
+    -- Maintenance Icon/Title
+    local icon = createElement("TextLabel", {
+        Size = UDim2.new(0, 60, 0, 60),
+        Position = UDim2.fromScale(0.5, 0.15),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Text = "⚠",
+        TextColor3 = Color3.fromRGB(200, 140, 60),
+        BackgroundTransparency = 1,
+        Font = Enum.Font.GothamBold,
+        TextSize = 50,
+        Parent = frame
+    })
+    
+    local title = createElement("TextLabel", {
+        Size = UDim2.new(0, 0, 0, 35),
+        Position = UDim2.fromScale(0.5, 0.35),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Text = "Under Maintenance",
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        BackgroundTransparency = 1,
+        Font = Enum.Font.GothamBold,
+        TextSize = 22,
+        Parent = frame
+    })
+    title:GetTextSize() -- Force update size
+    title.Size = UDim2.new(0, title.TextBounds.X, 0, 35)
+    
+    local message = createElement("TextLabel", {
+        Size = UDim2.new(0.85, 0, 0, 80),
+        Position = UDim2.fromScale(0.5, 0.55),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Text = "The server is currently undergoing maintenance. Please check back later.",
+        TextColor3 = Color3.fromRGB(180, 180, 180),
+        BackgroundTransparency = 1,
+        Font = Enum.Font.Gotham,
+        TextSize = 14,
+        TextWrapped = true,
+        TextYAlignment = Enum.TextYAlignment.Top,
+        Parent = frame
+    })
+    
+    local closeBtn = createElement("TextButton", {
+        Size = UDim2.new(0, 120, 0, 40),
+        Position = UDim2.fromScale(0.5, 0.82),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Text = "Close",
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextSize = 15,
+        Font = Enum.Font.GothamMedium,
+        BackgroundColor3 = Color3.fromRGB(120, 30, 30),
+        BorderSizePixel = 0,
+        Parent = frame
+    })
+    createElement("UICorner", {CornerRadius = UDim.new(0, 6), Parent = closeBtn})
+    
+    -- Hide initially
+    frame.BackgroundTransparency = 1
+    icon.TextTransparency = 1
+    title.TextTransparency = 1
+    message.TextTransparency = 1
+    closeBtn.TextTransparency = 1
+    
+    -- Fade in
+    task.wait(0.1)
+    TweenService:Create(frame, TweenInfo.new(0.5), {BackgroundTransparency = 0}):Play()
+    TweenService:Create(icon, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+    TweenService:Create(title, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+    TweenService:Create(message, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+    TweenService:Create(closeBtn, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+    
+    -- Button hover
+    local originalBtn = closeBtn.BackgroundColor3
+    closeBtn.MouseEnter:Connect(function()
+        TweenService:Create(closeBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(160, 40, 40)}):Play()
+    end)
+    closeBtn.MouseLeave:Connect(function()
+        TweenService:Create(closeBtn, TweenInfo.new(0.2), {BackgroundColor3 = originalBtn}):Play()
+    end)
+    
+    closeBtn.MouseButton1Click:Connect(function()
+        TweenService:Create(frame, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
+        TweenService:Create(icon, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+        TweenService:Create(title, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+        TweenService:Create(message, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+        TweenService:Create(closeBtn, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+        task.wait(0.35)
+        screen:Destroy()
+        if onClose then onClose() end
+    end)
 end
 
 -- Create Splash Screen
@@ -129,10 +243,46 @@ function LoginScreen.Create(options)
     local onClose = options.onClose or function() end
     local checkKeyFunction = options.checkKey or function(key, callback) callback(false, "No validation") end
     local getKeyUrl = options.getKeyUrl or "https://discord.gg/9B3sxTxD2E"
+    local healthCheckFunction = options.healthCheck
     
     local Player = Players.LocalPlayer
     
-    createSplash(function()
+    -- Check server health first
+    task.spawn(function()
+        local isOnline = false
+        if healthCheckFunction then
+            healthCheckFunction(function(online)
+                isOnline = online
+                if isOnline then
+                    -- Server is online, show splash then login form
+                    createSplash(function()
+                        createLoginForm(options)
+                    end)
+                else
+                    -- Server is offline, show maintenance screen
+                    createSplash(function()
+                        createMaintenanceScreen(onClose)
+                    end)
+                end
+            end)
+        else
+            -- No health check, assume online
+            createSplash(function()
+                createLoginForm(options)
+            end)
+        end
+    end)
+end
+
+-- Separate login form creation
+local function createLoginForm(options)
+    local onKeyValid = options.onKeyValid or function(key) print("Key:", key) end
+    local onClose = options.onClose or function() end
+    local checkKeyFunction = options.checkKey or function(key, callback) callback(false, "No validation") end
+    local getKeyUrl = options.getKeyUrl or "https://discord.gg/9B3sxTxD2E"
+    local Player = Players.LocalPlayer
+    
+    task.spawn(function()
         -- Login Form
         local screen = createElement("ScreenGui", {Name = "LoginScreen", ResetOnSpawn = false, Parent = Player:WaitForChild("PlayerGui")})
         
@@ -340,6 +490,6 @@ function LoginScreen.Create(options)
             end
         }
     end)
-end
+end)
 
 return LoginScreen
