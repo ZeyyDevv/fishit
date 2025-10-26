@@ -156,34 +156,22 @@ local function createAutoLoginScreen(onComplete)
     createElement("UICorner", {CornerRadius = UDim.new(0, 8), Parent = frame})
     createElement("UIStroke", {Thickness = 1, Color = Color3.fromRGB(60, 0, 0), Transparency = 0.5, Parent = frame})
     
-    -- Logo/Icon
-    local icon = createElement("TextLabel", {
-        Size = UDim2.new(0, 80, 0, 80),
-        Position = UDim2.fromScale(0.5, 0.2),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Text = "🔐",
-        TextColor3 = Color3.fromRGB(180, 20, 20),
-        BackgroundTransparency = 1,
-        Font = Enum.Font.GothamBold,
-        TextSize = 70,
-        Parent = frame
-    })
-    
+    -- Title (no icon)
     local title = createElement("TextLabel", {
-        Size = UDim2.new(0, 220, 0, 30),
-        Position = UDim2.fromScale(0.5, 0.42),
+        Size = UDim2.new(0, 280, 0, 40),
+        Position = UDim2.fromScale(0.5, 0.25),
         AnchorPoint = Vector2.new(0.5, 0.5),
         Text = "Auto-Login",
         TextColor3 = Color3.fromRGB(255, 255, 255),
         BackgroundTransparency = 1,
         Font = Enum.Font.GothamBold,
-        TextSize = 24,
+        TextSize = 28,
         Parent = frame
     })
     
     local subtitle = createElement("TextLabel", {
         Size = UDim2.new(0, 280, 0, 30),
-        Position = UDim2.fromScale(0.5, 0.52),
+        Position = UDim2.fromScale(0.5, 0.42),
         AnchorPoint = Vector2.new(0.5, 0.5),
         Text = "Welcome back! Verifying your key...",
         TextColor3 = Color3.fromRGB(180, 180, 180),
@@ -196,7 +184,7 @@ local function createAutoLoginScreen(onComplete)
     -- Loading container
     local loaderContainer = createElement("Frame", {
         Size = UDim2.new(0, 260, 0, 8),
-        Position = UDim2.fromScale(0.5, 0.72),
+        Position = UDim2.fromScale(0.5, 0.65),
         AnchorPoint = Vector2.new(0.5, 0),
         BackgroundColor3 = Color3.fromRGB(30, 30, 30),
         BorderSizePixel = 0,
@@ -214,7 +202,7 @@ local function createAutoLoginScreen(onComplete)
     
     local statusText = createElement("TextLabel", {
         Size = UDim2.new(0, 200, 0, 20),
-        Position = UDim2.fromScale(0.5, 0.82),
+        Position = UDim2.fromScale(0.5, 0.76),
         AnchorPoint = Vector2.new(0.5, 0),
         Text = "",
         TextColor3 = Color3.fromRGB(150, 150, 150),
@@ -226,7 +214,6 @@ local function createAutoLoginScreen(onComplete)
     
     -- Hide initially
     frame.BackgroundTransparency = 1
-    icon.TextTransparency = 1
     title.TextTransparency = 1
     subtitle.TextTransparency = 1
     statusText.TextTransparency = 1
@@ -235,7 +222,6 @@ local function createAutoLoginScreen(onComplete)
     -- Fade in
     task.wait(0.1)
     TweenService:Create(frame, TweenInfo.new(0.4), {BackgroundTransparency = 0}):Play()
-    TweenService:Create(icon, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
     TweenService:Create(title, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
     TweenService:Create(subtitle, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
     TweenService:Create(statusText, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
@@ -267,7 +253,6 @@ local function createAutoLoginScreen(onComplete)
         
         -- Fade out
         TweenService:Create(frame, TweenInfo.new(0.4), {BackgroundTransparency = 1}):Play()
-        TweenService:Create(icon, TweenInfo.new(0.4), {TextTransparency = 1}):Play()
         TweenService:Create(title, TweenInfo.new(0.4), {TextTransparency = 1}):Play()
         TweenService:Create(subtitle, TweenInfo.new(0.4), {TextTransparency = 1}):Play()
         TweenService:Create(statusText, TweenInfo.new(0.4), {TextTransparency = 1}):Play()
