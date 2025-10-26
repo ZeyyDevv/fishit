@@ -436,8 +436,7 @@ local function createLoginForm(options)
     local getKeyUrl = options.getKeyUrl or "https://discord.gg/9B3sxTxD2E"
     local Player = Players.LocalPlayer
     
-    task.spawn(function()
-        -- Login Form
+    -- Login Form
         local screen = createElement("ScreenGui", {Name = "LoginScreen", ResetOnSpawn = false, Parent = Player:WaitForChild("PlayerGui")})
         
         local frame = createElement("Frame", {
@@ -635,15 +634,6 @@ local function createLoginForm(options)
         keyInput.FocusLost:Connect(function(enterPressed)
             if enterPressed then submitBtn:FireButtonClick() end
         end)
-        
-        return {
-            Close = closeScreen,
-            SetStatus = function(msg, color)
-                status.Text = msg
-                status.TextColor3 = color or Color3.fromRGB(180, 180, 180)
-            end
-        }
-    end)
 end
 
 -- Export CreateAutoLogin function
