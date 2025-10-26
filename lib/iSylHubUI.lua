@@ -59,7 +59,7 @@ local function createMaintenanceScreen(onClose)
     })
     
     local title = createElement("TextLabel", {
-        Size = UDim2.new(0, 0, 0, 35),
+        Size = UDim2.new(0, 280, 0, 35),
         Position = UDim2.fromScale(0.5, 0.35),
         AnchorPoint = Vector2.new(0.5, 0.5),
         Text = "Under Maintenance",
@@ -69,8 +69,6 @@ local function createMaintenanceScreen(onClose)
         TextSize = 22,
         Parent = frame
     })
-    title:GetTextSize() -- Force update size
-    title.Size = UDim2.new(0, title.TextBounds.X, 0, 35)
     
     local message = createElement("TextLabel", {
         Size = UDim2.new(0.85, 0, 0, 80),
