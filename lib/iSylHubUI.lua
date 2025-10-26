@@ -172,7 +172,7 @@ local function createAutoLoginScreen(onComplete)
     })
     
     local title = createElement("TextLabel", {
-        Size = UDim2.new(0, 0, 0, 30),
+        Size = UDim2.new(0, 220, 0, 30),
         Position = UDim2.fromScale(0.5, 0.42),
         AnchorPoint = Vector2.new(0.5, 0.5),
         Text = "Auto-Login",
@@ -182,8 +182,6 @@ local function createAutoLoginScreen(onComplete)
         TextSize = 24,
         Parent = frame
     })
-    title:GetTextSize()
-    title.Size = UDim2.new(0, title.TextBounds.X, 0, 30)
     
     local subtitle = createElement("TextLabel", {
         Size = UDim2.new(0, 280, 0, 30),
