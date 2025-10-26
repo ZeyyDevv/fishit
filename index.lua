@@ -21,9 +21,14 @@ REObtainedNewFish.OnClientEvent:Connect(function(fishId, weightData, notifDataRe
 end)
 
 REFishingStopped.OnClientEvent:Connect(function()
+    for i = 1, 10 do
+        if caughtFishName then break end
+        task.wait(0.1)
+    end
+    
     if not caughtFishName then return end
     
-    task.wait(0.3)
+    task.wait(0.2)
     
     local player = Players.LocalPlayer
     local container = {
@@ -46,11 +51,7 @@ REFishingStopped.OnClientEvent:Connect(function()
     request({
         Url = webhookURL .. "?with_components=true",
         Method = "POST",
-        Headers = {
-            ["Content-Type"] = "application/json",
-            ["accept"] = "*/*",
-            ["cache-control"] = "no-cache"
-        },
+        Headers = {["Content-Type"] = "application/json", ["accept"] = "*/*", ["cache-control"] = "no-cache"},
         Body = HttpService:JSONEncode({["components"] = container, ["flags"] = 32768})
     })
     
