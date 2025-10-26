@@ -37,7 +37,7 @@ REFishingStopped.OnClientEvent:Connect(function()
                 {["type"] = 10, ["content"] = "👤 **Username:** " .. player.Name},
                 {["type"] = 10, ["content"] = string.format("🐟 **Fish:** %s (Weight: %.2f kg)", caughtFishName, caughtFishWeight)},
                 {["type"] = 10, ["content"] = string.format("%s **Is New Fish:** %s", isNewData and "✅" or "❌", isNewData and "Yes" or "No")},
-                {["type"] = 10, ["content"] = "🕐 **Time:** <t:" .. math.floor(os.time()) .. ":R>"}
+                {["type"] = 10, ["content"] = "🕐 **Time:** <t:" .. math.floor(os.time()) .. ":R>"},
                 {["type"] = 10, ["content"] = "\n\n-# Webhook Fish It by <@1186284402565722197> from iSylHub Project"}
             }
         }
