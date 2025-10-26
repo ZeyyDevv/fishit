@@ -644,7 +644,7 @@ local function createLoginForm(options)
             end
         }
     end)
-end)
+end
 
 -- Export CreateAutoLogin function
 function LoginScreen.CreateAutoLogin(onComplete)
