@@ -136,6 +136,160 @@ local function createMaintenanceScreen(onClose)
     end)
 end
 
+-- Create Auto-Login Screen
+local function createAutoLoginScreen(onComplete)
+    local Player = Players.LocalPlayer
+    local screen = createElement("ScreenGui", {
+        Name = "AutoLoginScreen",
+        ResetOnSpawn = false,
+        Parent = Player:WaitForChild("PlayerGui")
+    })
+    
+    local frame = createElement("Frame", {
+        Size = UDim2.fromOffset(380, 250),
+        Position = UDim2.fromScale(0.5, 0.5),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundColor3 = Color3.fromRGB(18, 18, 18),
+        BorderSizePixel = 0,
+        ClipsDescendants = true,
+        Parent = screen
+    })
+    
+    createElement("UICorner", {CornerRadius = UDim.new(0, 8), Parent = frame})
+    createElement("UIStroke", {Thickness = 1, Color = Color3.fromRGB(60, 0, 0), Transparency = 0.5, Parent = frame})
+    
+    -- Logo/Icon
+    local icon = createElement("TextLabel", {
+        Size = UDim2.new(0, 80, 0, 80),
+        Position = UDim2.fromScale(0.5, 0.2),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Text = "🔐",
+        TextColor3 = Color3.fromRGB(180, 20, 20),
+        BackgroundTransparency = 1,
+        Font = Enum.Font.GothamBold,
+        TextSize = 70,
+        Parent = frame
+    })
+    
+    local title = createElement("TextLabel", {
+        Size = UDim2.new(0, 0, 0, 30),
+        Position = UDim2.fromScale(0.5, 0.42),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Text = "Auto-Login",
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        BackgroundTransparency = 1,
+        Font = Enum.Font.GothamBold,
+        TextSize = 24,
+        Parent = frame
+    })
+    title:GetTextSize()
+    title.Size = UDim2.new(0, title.TextBounds.X, 0, 30)
+    
+    local subtitle = createElement("TextLabel", {
+        Size = UDim2.new(0, 280, 0, 30),
+        Position = UDim2.fromScale(0.5, 0.52),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Text = "Welcome back! Verifying your key...",
+        TextColor3 = Color3.fromRGB(180, 180, 180),
+        BackgroundTransparency = 1,
+        Font = Enum.Font.Gotham,
+        TextSize = 13,
+        Parent = frame
+    })
+    
+    -- Loading container
+    local loaderContainer = createElement("Frame", {
+        Size = UDim2.new(0, 260, 0, 8),
+        Position = UDim2.fromScale(0.5, 0.72),
+        AnchorPoint = Vector2.new(0.5, 0),
+        BackgroundColor3 = Color3.fromRGB(30, 30, 30),
+        BorderSizePixel = 0,
+        Parent = frame
+    })
+    createElement("UICorner", {CornerRadius = UDim.new(0.5, 0), Parent = loaderContainer})
+    
+    local loaderFill = createElement("Frame", {
+        Size = UDim2.new(0, 0, 1, 0),
+        BackgroundColor3 = Color3.fromRGB(180, 20, 20),
+        BorderSizePixel = 0,
+        Parent = loaderContainer
+    })
+    createElement("UICorner", {CornerRadius = UDim.new(0.5, 0), Parent = loaderFill})
+    
+    local statusText = createElement("TextLabel", {
+        Size = UDim2.new(0, 200, 0, 20),
+        Position = UDim2.fromScale(0.5, 0.82),
+        AnchorPoint = Vector2.new(0.5, 0),
+        Text = "",
+        TextColor3 = Color3.fromRGB(150, 150, 150),
+        BackgroundTransparency = 1,
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        Parent = frame
+    })
+    
+    -- Hide initially
+    frame.BackgroundTransparency = 1
+    icon.TextTransparency = 1
+    title.TextTransparency = 1
+    subtitle.TextTransparency = 1
+    statusText.TextTransparency = 1
+    loaderFill.BackgroundTransparency = 1
+    
+    -- Fade in
+    task.wait(0.1)
+    TweenService:Create(frame, TweenInfo.new(0.4), {BackgroundTransparency = 0}):Play()
+    TweenService:Create(icon, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+    TweenService:Create(title, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+    TweenService:Create(subtitle, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+    TweenService:Create(statusText, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+    TweenService:Create(loaderFill, TweenInfo.new(0.5), {BackgroundTransparency = 0}):Play()
+    
+    -- Loading animation
+    task.spawn(function()
+        statusText.Text = "Checking cached key..."
+        task.wait(0.5)
+        
+        local steps = 60
+        for i = 1, steps do
+            loaderFill.Size = UDim2.new(i / steps, 0, 1, 0)
+            
+            if i == 20 then
+                statusText.Text = "Verifying credentials..."
+            elseif i == 40 then
+                statusText.Text = "Loading session..."
+            elseif i == 50 then
+                statusText.Text = "Almost done..."
+            end
+            
+            task.wait(0.03)
+        end
+        
+        statusText.Text = "✓ Success!"
+        statusText.TextColor3 = Color3.fromRGB(80, 180, 80)
+        task.wait(0.3)
+        
+        -- Fade out
+        TweenService:Create(frame, TweenInfo.new(0.4), {BackgroundTransparency = 1}):Play()
+        TweenService:Create(icon, TweenInfo.new(0.4), {TextTransparency = 1}):Play()
+        TweenService:Create(title, TweenInfo.new(0.4), {TextTransparency = 1}):Play()
+        TweenService:Create(subtitle, TweenInfo.new(0.4), {TextTransparency = 1}):Play()
+        TweenService:Create(statusText, TweenInfo.new(0.4), {TextTransparency = 1}):Play()
+        TweenService:Create(loaderFill, TweenInfo.new(0.4), {BackgroundTransparency = 1}):Play()
+        
+        task.wait(0.5)
+        screen:Destroy()
+        
+        if onComplete then onComplete() end
+    end)
+    
+    return {
+        Destroy = function()
+            screen:Destroy()
+        end
+    }
+end
+
 -- Create Splash Screen
 local function createSplash(onComplete)
     local Player = Players.LocalPlayer
@@ -491,5 +645,10 @@ local function createLoginForm(options)
         }
     end)
 end)
+
+-- Export CreateAutoLogin function
+function LoginScreen.CreateAutoLogin(onComplete)
+    return createAutoLoginScreen(onComplete)
+end
 
 return LoginScreen
