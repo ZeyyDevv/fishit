@@ -23,8 +23,14 @@ local function fadeInItems(parent)
     end
 end
 
+-- Forward declarations (to prevent "attempt to call nil value" errors)
+local createMaintenanceScreen
+local createAutoLoginScreen
+local createSplash
+local createLoginForm
+
 -- Create Maintenance Screen
-local function createMaintenanceScreen(onClose)
+createMaintenanceScreen = function(onClose)
     local Player = Players.LocalPlayer
     local screen = createElement("ScreenGui", {
         Name = "MaintenanceScreen",
@@ -135,7 +141,7 @@ local function createMaintenanceScreen(onClose)
 end
 
 -- Create Auto-Login Screen
-local function createAutoLoginScreen(onComplete)
+createAutoLoginScreen = function(onComplete)
     local Player = Players.LocalPlayer
     local screen = createElement("ScreenGui", {
         Name = "AutoLoginScreen",
@@ -272,7 +278,7 @@ local function createAutoLoginScreen(onComplete)
 end
 
 -- Create Splash Screen
-local function createSplash(onComplete)
+createSplash = function(onComplete)
     local Player = Players.LocalPlayer
     local splashScreen = createElement("ScreenGui", {
         Name = "LoginSplash",
@@ -372,7 +378,7 @@ local function createSplash(onComplete)
 end
 
 -- Separate login form creation (MUST be defined before LoginScreen.Create)
-local function createLoginForm(options)
+createLoginForm = function(options)
     local onKeyValid = options.onKeyValid or function(key) print("Key:", key) end
     local onClose = options.onClose or function() end
     local checkKeyFunction = options.checkKey or function(key, callback) callback(false, "No validation") end
