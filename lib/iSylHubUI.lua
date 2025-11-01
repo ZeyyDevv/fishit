@@ -371,45 +371,7 @@ local function createSplash(onComplete)
     end)
 end
 
--- Main function to create login screen
-function LoginScreen.Create(options)
-    options = options or {}
-    local onKeyValid = options.onKeyValid or function(key) print("Key:", key) end
-    local onClose = options.onClose or function() end
-    local checkKeyFunction = options.checkKey or function(key, callback) callback(false, "No validation") end
-    local getKeyUrl = options.getKeyUrl or "https://discord.gg/9B3sxTxD2E"
-    local healthCheckFunction = options.healthCheck
-    
-    local Player = Players.LocalPlayer
-    
-    -- Check server health first
-    task.spawn(function()
-        local isOnline = false
-        if healthCheckFunction then
-            healthCheckFunction(function(online)
-                isOnline = online
-                if isOnline then
-                    -- Server is online, show splash then login form
-                    createSplash(function()
-                        createLoginForm(options)
-                    end)
-                else
-                    -- Server is offline, show maintenance screen
-                    createSplash(function()
-                        createMaintenanceScreen(onClose)
-                    end)
-                end
-            end)
-        else
-            -- No health check, assume online
-            createSplash(function()
-                createLoginForm(options)
-            end)
-        end
-    end)
-end
-
--- Separate login form creation
+-- Separate login form creation (MUST be defined before LoginScreen.Create)
 local function createLoginForm(options)
     local onKeyValid = options.onKeyValid or function(key) print("Key:", key) end
     local onClose = options.onClose or function() end
@@ -615,6 +577,44 @@ local function createLoginForm(options)
         keyInput.FocusLost:Connect(function(enterPressed)
             if enterPressed then submitBtn:FireButtonClick() end
         end)
+end
+
+-- Main function to create login screen
+function LoginScreen.Create(options)
+    options = options or {}
+    local onKeyValid = options.onKeyValid or function(key) print("Key:", key) end
+    local onClose = options.onClose or function() end
+    local checkKeyFunction = options.checkKey or function(key, callback) callback(false, "No validation") end
+    local getKeyUrl = options.getKeyUrl or "https://discord.gg/9B3sxTxD2E"
+    local healthCheckFunction = options.healthCheck
+    
+    local Player = Players.LocalPlayer
+    
+    -- Check server health first
+    task.spawn(function()
+        local isOnline = false
+        if healthCheckFunction then
+            healthCheckFunction(function(online)
+                isOnline = online
+                if isOnline then
+                    -- Server is online, show splash then login form
+                    createSplash(function()
+                        createLoginForm(options)
+                    end)
+                else
+                    -- Server is offline, show maintenance screen
+                    createSplash(function()
+                        createMaintenanceScreen(onClose)
+                    end)
+                end
+            end)
+        else
+            -- No health check, assume online
+            createSplash(function()
+                createLoginForm(options)
+            end)
+        end
+    end)
 end
 
 -- Export CreateAutoLogin function
