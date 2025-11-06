@@ -206,25 +206,66 @@ end
 -- =========================
 -- HEALTH CHECK WITH LOADING
 -- =========================
-local function health_check_function(callback)
+local function health_check_function(callback, loadingControl)
 	-- Lakukan health check dengan timeout
 	-- Loading screen akan muncul dari LoginScreen.Create (splash screen)
 	task.spawn(function()
 		print("⏳ Menunggu response dari server...")
 		
 		local startTime = tick()
-		local res = safe_get(CONFIG.HEALTH_CHECK_URL, CONFIG.HEALTH_CHECK_TIMEOUT)
+		local timeout = CONFIG.HEALTH_CHECK_TIMEOUT
+		local checkInterval = 0.1 -- Update progress setiap 0.1 detik
+		local lastProgress = 10
+		local shouldStop = false
+		
+		-- Update progress secara real-time sambil menunggu response
+		task.spawn(function()
+			while not shouldStop and tick() - startTime < timeout do
+				local elapsed = tick() - startTime
+				local progress = math.min(10 + (elapsed / timeout) * 40, 50) -- Progress dari 10% sampai 50%
+				
+				if loadingControl and progress > lastProgress and not shouldStop then
+					loadingControl.UpdateProgress(progress, true)
+					lastProgress = progress
+					
+					-- Update status text berdasarkan waktu
+					if elapsed < 2 then
+						loadingControl.UpdateStatus("Menunggu response dari server...", Color3.fromRGB(200, 140, 60))
+					elseif elapsed < 5 then
+						loadingControl.UpdateStatus("Server mungkin lambat, menunggu...", Color3.fromRGB(200, 140, 60))
+					else
+						loadingControl.UpdateStatus("Server tidak merespon, menunggu timeout...", Color3.fromRGB(200, 100, 60))
+					end
+				end
+				
+				task.wait(checkInterval)
+			end
+		end)
+		
+		-- Lakukan request
+		local res = safe_get(CONFIG.HEALTH_CHECK_URL, timeout)
 		local elapsedTime = tick() - startTime
 		
+		-- Stop progress updater
+		shouldStop = true
+		
 		-- Cek apakah timeout
-		if not res and elapsedTime >= CONFIG.HEALTH_CHECK_TIMEOUT then
-			warn("⏱️ Health check timeout setelah " .. CONFIG.HEALTH_CHECK_TIMEOUT .. " detik")
+		if not res and elapsedTime >= timeout then
+			warn("⏱️ Health check timeout setelah " .. timeout .. " detik")
+			if loadingControl then
+				loadingControl.UpdateProgress(100, true)
+				loadingControl.UpdateStatus("⏱️ Timeout - Server tidak merespon", Color3.fromRGB(180, 60, 60))
+			end
 			callback(false) -- Server mati atau timeout, akan tampilkan maintenance
 			return
 		end
 		
 		if not res then
 			warn("❌ Gagal terhubung ke server")
+			if loadingControl then
+				loadingControl.UpdateProgress(100, true)
+				loadingControl.UpdateStatus("❌ Gagal terhubung ke server", Color3.fromRGB(180, 60, 60))
+			end
 			callback(false) -- Akan tampilkan maintenance
 			return
 		end
@@ -235,12 +276,24 @@ local function health_check_function(callback)
 			local isOnline = json.status and (json.status == "OK" or json.status == "ok") and json.uptime ~= nil
 			if isOnline then
 				print("✓ Server online (response dalam " .. string.format("%.2f", elapsedTime) .. " detik)")
+				if loadingControl then
+					loadingControl.UpdateProgress(50, true)
+					loadingControl.UpdateStatus("✓ Server online!", Color3.fromRGB(100, 180, 100))
+				end
 			else
 				warn("⚠️ Server status tidak valid")
+				if loadingControl then
+					loadingControl.UpdateProgress(100, true)
+					loadingControl.UpdateStatus("⚠️ Server status tidak valid", Color3.fromRGB(180, 60, 60))
+				end
 			end
 			callback(isOnline) -- Akan tampilkan login form atau maintenance
 		else
 			warn("❌ Invalid server response")
+			if loadingControl then
+				loadingControl.UpdateProgress(100, true)
+				loadingControl.UpdateStatus("❌ Invalid server response", Color3.fromRGB(180, 60, 60))
+			end
 			callback(false) -- Akan tampilkan maintenance
 		end
 	end)
@@ -255,38 +308,87 @@ local function verify_with_loading(key)
 		return
 	end
 	
-	-- Tampilkan loading screen
-	LoginScreen.CreateAutoLogin(function()
+	-- Tampilkan loading screen dengan kontrol manual
+	local loadingControl = LoginScreen.CreateAutoLogin(nil, {
+		manualControl = true,
+		initialStatus = "Memverifikasi key...",
+		subtitle = "Verifying your key..."
+	})
+	
+	-- Update progress awal
+	loadingControl.UpdateProgress(10, true)
+	loadingControl.UpdateStatus("Memverifikasi key...", Color3.fromRGB(200, 140, 60))
+	
+	task.spawn(function()
 		-- Verifikasi key
 		if not CONFIG.AUTO_VERIFY then
 			-- Skip verification, langsung valid
+			loadingControl.UpdateProgress(50, true)
+			loadingControl.UpdateStatus("Verification disabled, loading...", Color3.fromRGB(100, 180, 100))
+			task.wait(0.3)
+			
 			save_cache(key)
-			print("✓ Key berhasil diverifikasi (verification disabled)")
+			loadingControl.UpdateProgress(100, true)
+			loadingControl.UpdateStatus("✓ Key berhasil diverifikasi", Color3.fromRGB(80, 180, 80))
+			task.wait(0.3)
+			
+			loadingControl.Complete()
 			load_main_script()
 			return
 		end
 		
-		-- Verify key
+		-- Verify key dengan progress update
+		loadingControl.UpdateProgress(30, true)
+		loadingControl.UpdateStatus("Menghubungi server...", Color3.fromRGB(200, 140, 60))
+		
 		local json = check_key(key)
 		
 		if json and json.ok then
 			-- Key valid
+			loadingControl.UpdateProgress(70, true)
+			loadingControl.UpdateStatus("Key valid, menyimpan...", Color3.fromRGB(100, 180, 100))
+			task.wait(0.2)
+			
 			save_cache(key)
+			loadingControl.UpdateProgress(100, true)
+			loadingControl.UpdateStatus("✓ " .. (json.msg or "Key berhasil diverifikasi"), Color3.fromRGB(80, 180, 80))
+			task.wait(0.3)
+			
+			loadingControl.Complete()
 			print("✓ " .. (json.msg or "Key berhasil diverifikasi"))
 			load_main_script()
 		elseif json and not json.ok then
 			-- Key tidak valid
+			loadingControl.UpdateProgress(100, true)
 			local errorMsg = json.msg or "Key tidak valid"
+			loadingControl.UpdateStatus("❌ " .. errorMsg, Color3.fromRGB(180, 60, 60))
+			task.wait(1)
+			
 			warn("❌ " .. errorMsg)
+			loadingControl.Destroy()
 			Player:Kick("Key verification failed: " .. errorMsg)
 		else
 			-- Offline atau error koneksi
 			if CONFIG.USE_CACHE_OFFLINE then
+				loadingControl.UpdateProgress(70, true)
+				loadingControl.UpdateStatus("Offline mode, menyimpan key...", Color3.fromRGB(200, 140, 60))
+				task.wait(0.2)
+				
 				save_cache(key)
+				loadingControl.UpdateProgress(100, true)
+				loadingControl.UpdateStatus("✓ Key disimpan (offline mode)", Color3.fromRGB(80, 180, 80))
+				task.wait(0.3)
+				
+				loadingControl.Complete()
 				print("✓ Key disimpan (offline mode)")
 				load_main_script()
 			else
+				loadingControl.UpdateProgress(100, true)
+				loadingControl.UpdateStatus("❌ Gagal terhubung ke server", Color3.fromRGB(180, 60, 60))
+				task.wait(1)
+				
 				warn("❌ Gagal terhubung ke server")
+				loadingControl.Destroy()
 				Player:Kick("Failed to connect to server. Please check your internet connection.")
 			end
 		end
