@@ -194,29 +194,51 @@ local function health_check_function(callback)
 	end)
 end
 
-local function verify_key_silent(key)
-	if not key or key == "" then return false end
-	
-	-- Skip verification if disabled
-	if not CONFIG.AUTO_VERIFY then
-		on_key_valid(key)
-		return true
+-- =========================
+-- VERIFY WITH LOADING SCREEN
+-- =========================
+local function verify_with_loading(key)
+	if not key or key == "" then
+		warn("❌ Key tidak valid")
+		return
 	end
 	
-	-- Verify key
-	local json = check_key(key)
-	if json and json.ok then
-		on_key_valid(key)
-		return true
-	elseif json and not json.ok then
-		return false
-	elseif CONFIG.USE_CACHE_OFFLINE then
-		-- Use key if offline
-		on_key_valid(key)
-		return true
-	end
-	
-	return false
+	-- Tampilkan loading screen
+	LoginScreen.CreateAutoLogin(function()
+		-- Verifikasi key
+		if not CONFIG.AUTO_VERIFY then
+			-- Skip verification, langsung valid
+			save_cache(key)
+			print("✓ Key berhasil diverifikasi (verification disabled)")
+			load_main_script()
+			return
+		end
+		
+		-- Verify key
+		local json = check_key(key)
+		
+		if json and json.ok then
+			-- Key valid
+			save_cache(key)
+			print("✓ " .. (json.msg or "Key berhasil diverifikasi"))
+			load_main_script()
+		elseif json and not json.ok then
+			-- Key tidak valid
+			local errorMsg = json.msg or "Key tidak valid"
+			warn("❌ " .. errorMsg)
+			Player:Kick("Key verification failed: " .. errorMsg)
+		else
+			-- Offline atau error koneksi
+			if CONFIG.USE_CACHE_OFFLINE then
+				save_cache(key)
+				print("✓ Key disimpan (offline mode)")
+				load_main_script()
+			else
+				warn("❌ Gagal terhubung ke server")
+				Player:Kick("Failed to connect to server. Please check your internet connection.")
+			end
+		end
+	end)
 end
 
 local function execute_auto_login()
@@ -224,9 +246,9 @@ local function execute_auto_login()
 	if _G._iSylhub and type(_G._iSylhub) == "string" then
 		local globalKey = _G._iSylhub:gsub("%s+", "")
 		if globalKey ~= "" then
-			if verify_key_silent(globalKey) then
-				return false -- Key valid, don't show login
-			end
+			-- Langsung verifikasi dengan loading screen, tidak tampilkan login input
+			verify_with_loading(globalKey)
+			return false -- Don't show login screen
 		end
 	end
 	
