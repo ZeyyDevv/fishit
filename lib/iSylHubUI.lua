@@ -140,8 +140,9 @@ createMaintenanceScreen = function(onClose)
     end)
 end
 
--- Create Auto-Login Screen
-createAutoLoginScreen = function(onComplete)
+-- Create Auto-Login Screen (Interactive with controllable progress)
+createAutoLoginScreen = function(onComplete, options)
+    options = options or {}
     local Player = Players.LocalPlayer
     local screen = createElement("ScreenGui", {
         Name = "AutoLoginScreen",
@@ -179,7 +180,7 @@ createAutoLoginScreen = function(onComplete)
         Size = UDim2.new(0, 280, 0, 30),
         Position = UDim2.fromScale(0.5, 0.42),
         AnchorPoint = Vector2.new(0.5, 0.5),
-        Text = "Welcome back! Verifying your key...",
+        Text = options.subtitle or "Welcome back! Verifying your key...",
         TextColor3 = Color3.fromRGB(180, 180, 180),
         BackgroundTransparency = 1,
         Font = Enum.Font.Gotham,
@@ -207,10 +208,10 @@ createAutoLoginScreen = function(onComplete)
     createElement("UICorner", {CornerRadius = UDim.new(0.5, 0), Parent = loaderFill})
     
     local statusText = createElement("TextLabel", {
-        Size = UDim2.new(0, 200, 0, 20),
+        Size = UDim2.new(0, 280, 0, 20),
         Position = UDim2.fromScale(0.5, 0.76),
         AnchorPoint = Vector2.new(0.5, 0),
-        Text = "",
+        Text = options.initialStatus or "Checking cached key...",
         TextColor3 = Color3.fromRGB(150, 150, 150),
         BackgroundTransparency = 1,
         Font = Enum.Font.Gotham,
@@ -233,28 +234,36 @@ createAutoLoginScreen = function(onComplete)
     TweenService:Create(statusText, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
     TweenService:Create(loaderFill, TweenInfo.new(0.5), {BackgroundTransparency = 0}):Play()
     
-    -- Loading animation
-    task.spawn(function()
-        statusText.Text = "Checking cached key..."
-        task.wait(0.5)
+    -- Control functions
+    local currentProgress = 0
+    local isDestroyed = false
+    
+    local function updateProgress(progress, smooth)
+        if isDestroyed then return end
+        progress = math.clamp(progress, 0, 100)
+        currentProgress = progress
         
-        local steps = 60
-        for i = 1, steps do
-            loaderFill.Size = UDim2.new(i / steps, 0, 1, 0)
-            
-            if i == 20 then
-                statusText.Text = "Verifying credentials..."
-            elseif i == 40 then
-                statusText.Text = "Loading session..."
-            elseif i == 50 then
-                statusText.Text = "Almost done..."
-            end
-            
-            task.wait(0.03)
+        if smooth then
+            TweenService:Create(loaderFill, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                Size = UDim2.new(progress / 100, 0, 1, 0)
+            }):Play()
+        else
+            loaderFill.Size = UDim2.new(progress / 100, 0, 1, 0)
         end
-        
-        statusText.Text = "✓ Success!"
-        statusText.TextColor3 = Color3.fromRGB(80, 180, 80)
+    end
+    
+    local function updateStatus(text, color)
+        if isDestroyed then return end
+        statusText.Text = text or statusText.Text
+        if color then
+            statusText.TextColor3 = color
+        end
+    end
+    
+    local function complete()
+        if isDestroyed then return end
+        updateProgress(100, true)
+        updateStatus("✓ Success!", Color3.fromRGB(80, 180, 80))
         task.wait(0.3)
         
         -- Fade out
@@ -265,20 +274,61 @@ createAutoLoginScreen = function(onComplete)
         TweenService:Create(loaderFill, TweenInfo.new(0.4), {BackgroundTransparency = 1}):Play()
         
         task.wait(0.5)
+        isDestroyed = true
         screen:Destroy()
         
         if onComplete then onComplete() end
-    end)
+    end
     
-    return {
-        Destroy = function()
-            screen:Destroy()
-        end
+    local function destroy()
+        if isDestroyed then return end
+        isDestroyed = true
+        screen:Destroy()
+    end
+
+    -- Return control object
+    local control = {
+        UpdateProgress = updateProgress,
+        UpdateStatus = updateStatus,
+        Complete = complete,
+        Destroy = destroy,
+        GetProgress = function() return currentProgress end
     }
+    
+    -- Auto-complete jika tidak ada kontrol manual (backward compatibility)
+    if not options.manualControl then
+        task.spawn(function()
+            statusText.Text = "Checking cached key..."
+            task.wait(0.5)
+            
+            local steps = 60
+            for i = 1, steps do
+                if isDestroyed then break end
+                updateProgress((i / steps) * 100, true)
+                
+                if i == 20 then
+                    updateStatus("Verifying credentials...")
+                elseif i == 40 then
+                    updateStatus("Loading session...")
+                elseif i == 50 then
+                    updateStatus("Almost done...")
+                end
+                
+                task.wait(0.03)
+            end
+            
+            if not isDestroyed then
+                complete()
+            end
+        end)
+    end
+    
+    return control
 end
 
--- Create Splash Screen
-createSplash = function(onComplete)
+-- Create Splash Screen (Interactive with controllable progress)
+createSplash = function(onComplete, options)
+    options = options or {}
     local Player = Players.LocalPlayer
     local splashScreen = createElement("ScreenGui", {
         Name = "LoginSplash",
@@ -287,7 +337,7 @@ createSplash = function(onComplete)
     })
 
     local splashFrame = createElement("Frame", {
-        Size = UDim2.fromOffset(380, 210),
+        Size = UDim2.fromOffset(380, 240),
         Position = UDim2.fromScale(0.5, 0.5),
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundColor3 = Color3.fromRGB(18, 18, 18),
@@ -299,7 +349,7 @@ createSplash = function(onComplete)
 
     local titleText = createElement("TextLabel", {
         Size = UDim2.new(0, 220, 0, 40),
-        Position = UDim2.fromScale(0.5, 0.22),
+        Position = UDim2.fromScale(0.5, 0.20),
         AnchorPoint = Vector2.new(0.5, 0),
         Text = "iSylHub Project",
         TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -313,13 +363,25 @@ createSplash = function(onComplete)
 
     local subtitleText = createElement("TextLabel", {
         Size = UDim2.new(0, 200, 0, 20),
-        Position = UDim2.fromScale(0.5, 0.37),
+        Position = UDim2.fromScale(0.5, 0.33),
         AnchorPoint = Vector2.new(0.5, 0),
         Text = "Premium Key System",
         TextColor3 = Color3.fromRGB(180, 180, 180),
         BackgroundTransparency = 1,
         Font = Enum.Font.Gotham,
         TextSize = 13,
+        Parent = splashFrame
+    })
+
+    local statusText = createElement("TextLabel", {
+        Size = UDim2.new(0, 300, 0, 20),
+        Position = UDim2.fromScale(0.5, 0.50),
+        AnchorPoint = Vector2.new(0.5, 0),
+        Text = options.initialStatus or "Initializing...",
+        TextColor3 = Color3.fromRGB(150, 150, 150),
+        BackgroundTransparency = 1,
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
         Parent = splashFrame
     })
 
@@ -333,12 +395,17 @@ createSplash = function(onComplete)
     })
     createElement("UICorner", {CornerRadius = UDim.new(0.5, 0), Parent = loaderContainer})
 
-    local loaderFill = createElement("Frame", {Size = UDim2.new(0, 0, 1, 0), BackgroundColor3 = Color3.fromRGB(180, 20, 20), BorderSizePixel = 0, Parent = loaderContainer})
+    local loaderFill = createElement("Frame", {
+        Size = UDim2.new(0, 0, 1, 0),
+        BackgroundColor3 = Color3.fromRGB(180, 20, 20),
+        BorderSizePixel = 0,
+        Parent = loaderContainer
+    })
     createElement("UICorner", {CornerRadius = UDim.new(0.5, 0), Parent = loaderFill})
 
     local progressText = createElement("TextLabel", {
         Size = UDim2.new(0, 100, 0, 20),
-        Position = UDim2.fromScale(0.5, 0.74),
+        Position = UDim2.fromScale(0.5, 0.75),
         AnchorPoint = Vector2.new(0.5, 0),
         Text = "0%",
         TextColor3 = Color3.fromRGB(150, 150, 150),
@@ -348,33 +415,106 @@ createSplash = function(onComplete)
         Parent = splashFrame
     })
 
-    -- Splash Animation
-    task.spawn(function()
-        task.wait(0.5)
-        local duration = 2.5
-        local steps = 100
+    -- Hide initially
+    splashFrame.BackgroundTransparency = 1
+    titleText.TextTransparency = 1
+    subtitleText.TextTransparency = 1
+    statusText.TextTransparency = 1
+    progressText.TextTransparency = 1
+    loaderFill.BackgroundTransparency = 1
+
+    -- Fade in
+    task.wait(0.1)
+    TweenService:Create(splashFrame, TweenInfo.new(0.4), {BackgroundTransparency = 0}):Play()
+    TweenService:Create(titleText, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+    TweenService:Create(subtitleText, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+    TweenService:Create(statusText, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+    TweenService:Create(progressText, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+    TweenService:Create(loaderFill, TweenInfo.new(0.5), {BackgroundTransparency = 0}):Play()
+
+    -- Control functions
+    local currentProgress = 0
+    local isDestroyed = false
+    
+    local function updateProgress(progress, smooth)
+        if isDestroyed then return end
+        progress = math.clamp(progress, 0, 100)
+        currentProgress = progress
         
-        for i = 1, steps do
-            loaderFill.Size = UDim2.new(i / steps, 0, 1, 0)
-            progressText.Text = math.floor(i / steps * 100) .. "%"
-            task.wait(duration / steps * (i > 80 and 0.7 or 1))
+        if smooth then
+            TweenService:Create(loaderFill, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                Size = UDim2.new(progress / 100, 0, 1, 0)
+            }):Play()
+        else
+            loaderFill.Size = UDim2.new(progress / 100, 0, 1, 0)
         end
-        
-        progressText.Text = "100%"
+        progressText.Text = math.floor(progress) .. "%"
+    end
+    
+    local function updateStatus(text, color)
+        if isDestroyed then return end
+        statusText.Text = text or statusText.Text
+        if color then
+            statusText.TextColor3 = color
+        end
+    end
+    
+    local function complete()
+        if isDestroyed then return end
+        updateProgress(100, true)
+        updateStatus("✓ Ready!", Color3.fromRGB(80, 180, 80))
         task.wait(0.3)
         
         -- Fade out
         TweenService:Create(splashFrame, TweenInfo.new(0.6), {BackgroundTransparency = 1}):Play()
         TweenService:Create(titleText, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
         TweenService:Create(subtitleText, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+        TweenService:Create(statusText, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
         TweenService:Create(loaderContainer, TweenInfo.new(0.4), {BackgroundTransparency = 1}):Play()
         TweenService:Create(loaderFill, TweenInfo.new(0.4), {BackgroundTransparency = 1}):Play()
         TweenService:Create(progressText, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
         
         task.wait(0.6)
+        isDestroyed = true
         splashScreen:Destroy()
         if onComplete then onComplete() end
-    end)
+    end
+    
+    local function destroy()
+        if isDestroyed then return end
+        isDestroyed = true
+        splashScreen:Destroy()
+    end
+
+    -- Return control object
+    local control = {
+        UpdateProgress = updateProgress,
+        UpdateStatus = updateStatus,
+        Complete = complete,
+        Destroy = destroy,
+        GetProgress = function() return currentProgress end
+    }
+
+    -- Auto-complete jika tidak ada kontrol manual (backward compatibility)
+    if not options.manualControl then
+        task.spawn(function()
+            task.wait(0.5)
+            local duration = options.duration or 2.5
+            local steps = 100
+            
+            for i = 1, steps do
+                if isDestroyed then break end
+                updateProgress(i, true)
+                task.wait(duration / steps * (i > 80 and 0.7 or 1))
+            end
+            
+            if not isDestroyed then
+                complete()
+            end
+        end)
+    end
+
+    return control
 end
 
 -- Separate login form creation (MUST be defined before LoginScreen.Create)
@@ -600,20 +740,76 @@ function LoginScreen.Create(options)
     task.spawn(function()
         local isOnline = false
         if healthCheckFunction then
-            healthCheckFunction(function(online)
-                isOnline = online
-                if isOnline then
-                    -- Server is online, show splash then login form
-                    createSplash(function()
-                        createLoginForm(options)
-                    end)
-                else
-                    -- Server is offline, show maintenance screen
-                    createSplash(function()
-                        createMaintenanceScreen(onClose)
+            -- Tampilkan loading screen dengan progress yang dapat dikontrol
+            local loadingControl = createSplash(nil, {
+                manualControl = true,
+                initialStatus = "Menunggu response dari server..."
+            })
+            
+            -- Update progress sambil menunggu health check
+            loadingControl.UpdateProgress(10, true)
+            loadingControl.UpdateStatus("Menunggu response dari server...", Color3.fromRGB(200, 140, 60))
+            
+            -- Pass loading control to health check function if it accepts it
+            if healthCheckFunction then
+                -- Try to call with loading control (for interactive progress updates)
+                local success, result = pcall(function()
+                    return healthCheckFunction(function(online)
+                        isOnline = online
+                        
+                        if isOnline then
+                            -- Server online
+                            loadingControl.UpdateProgress(50, true)
+                            loadingControl.UpdateStatus("Server online, memuat...", Color3.fromRGB(100, 180, 100))
+                            task.wait(0.3)
+                            
+                            loadingControl.Complete()
+                            
+                            -- Show splash then login form
+                            task.wait(0.5)
+                            createSplash(function()
+                                createLoginForm(options)
+                            end)
+                        else
+                            -- Server offline
+                            loadingControl.UpdateProgress(100, true)
+                            loadingControl.UpdateStatus("Server sedang maintenance", Color3.fromRGB(180, 60, 60))
+                            task.wait(0.5)
+                            
+                            loadingControl.Complete()
+                            
+                            -- Show maintenance screen
+                            task.wait(0.5)
+                            createMaintenanceScreen(onClose)
+                        end
+                    end, loadingControl)
+                end)
+                
+                -- If health check doesn't accept loading control, use default callback
+                if not success then
+                    healthCheckFunction(function(online)
+                        isOnline = online
+                        
+                        if isOnline then
+                            loadingControl.UpdateProgress(50, true)
+                            loadingControl.UpdateStatus("Server online, memuat...", Color3.fromRGB(100, 180, 100))
+                            task.wait(0.3)
+                            loadingControl.Complete()
+                            task.wait(0.5)
+                            createSplash(function()
+                                createLoginForm(options)
+                            end)
+                        else
+                            loadingControl.UpdateProgress(100, true)
+                            loadingControl.UpdateStatus("Server sedang maintenance", Color3.fromRGB(180, 60, 60))
+                            task.wait(0.5)
+                            loadingControl.Complete()
+                            task.wait(0.5)
+                            createMaintenanceScreen(onClose)
+                        end
                     end)
                 end
-            end)
+            end
         else
             -- No health check, assume online
             createSplash(function()
@@ -624,8 +820,8 @@ function LoginScreen.Create(options)
 end
 
 -- Export CreateAutoLogin function
-function LoginScreen.CreateAutoLogin(onComplete)
-    return createAutoLoginScreen(onComplete)
+function LoginScreen.CreateAutoLogin(onComplete, options)
+    return createAutoLoginScreen(onComplete, options)
 end
 
 return LoginScreen
