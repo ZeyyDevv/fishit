@@ -12,7 +12,8 @@ local CONFIG = {
 	HEALTH_CHECK_URL = "https://server.isylhub.workers.dev/health",
 	CACHE_PATH = "iSyl_key_cache.txt",
 	AUTO_VERIFY = true,
-	USE_CACHE_OFFLINE = true
+	USE_CACHE_OFFLINE = true,
+	HEALTH_CHECK_TIMEOUT = 10 -- Timeout dalam detik
 }
 
 -- =========================
@@ -26,19 +27,45 @@ local Player = Players.LocalPlayer
 -- =========================
 -- HELPERS
 -- =========================
-local function safe_get(url)
-	local ok, res = pcall(function()
-		if syn and syn.request then
-			return syn.request({Url = url, Method = "GET"}).Body
-		elseif request then
-			return request({Url = url, Method = "GET"}).Body
-		elseif http and http.request then
-			return http.request({Url = url, Method = "GET"}).Body
-		elseif game.HttpGet then
-			return game:HttpGet(url)
+local function safe_get(url, timeout)
+	timeout = timeout or CONFIG.HEALTH_CHECK_TIMEOUT
+	local result = nil
+	local completed = false
+	local requestError = nil
+	
+	-- Start request in separate thread
+	task.spawn(function()
+		local ok, res = pcall(function()
+			if syn and syn.request then
+				return syn.request({Url = url, Method = "GET", Timeout = timeout}).Body
+			elseif request then
+				return request({Url = url, Method = "GET", Timeout = timeout}).Body
+			elseif http and http.request then
+				return http.request({Url = url, Method = "GET", Timeout = timeout}).Body
+			elseif game.HttpGet then
+				return game:HttpGet(url)
+			end
+		end)
+		if ok and res then
+			result = res
+		else
+			requestError = res
 		end
+		completed = true
 	end)
-	return ok and res or nil
+	
+	-- Wait for completion or timeout
+	local startTime = tick()
+	while not completed and (tick() - startTime) < timeout do
+		task.wait(0.1)
+	end
+	
+	-- Jika timeout, return nil
+	if not completed then
+		return nil
+	end
+	
+	return result
 end
 
 local function save_cache(key)
@@ -176,20 +203,45 @@ local function check_key_function(key, callback)
 	end
 end
 
+-- =========================
+-- HEALTH CHECK WITH LOADING
+-- =========================
 local function health_check_function(callback)
+	-- Lakukan health check dengan timeout
+	-- Loading screen akan muncul dari LoginScreen.Create (splash screen)
 	task.spawn(function()
-		local res = safe_get(CONFIG.HEALTH_CHECK_URL)
-		if not res then
-			callback(false)
+		print("⏳ Menunggu response dari server...")
+		
+		local startTime = tick()
+		local res = safe_get(CONFIG.HEALTH_CHECK_URL, CONFIG.HEALTH_CHECK_TIMEOUT)
+		local elapsedTime = tick() - startTime
+		
+		-- Cek apakah timeout
+		if not res and elapsedTime >= CONFIG.HEALTH_CHECK_TIMEOUT then
+			warn("⏱️ Health check timeout setelah " .. CONFIG.HEALTH_CHECK_TIMEOUT .. " detik")
+			callback(false) -- Server mati atau timeout, akan tampilkan maintenance
 			return
 		end
 		
+		if not res then
+			warn("❌ Gagal terhubung ke server")
+			callback(false) -- Akan tampilkan maintenance
+			return
+		end
+		
+		-- Parse response
 		local ok, json = pcall(function() return HttpService:JSONDecode(res) end)
 		if ok and type(json) == "table" then
 			local isOnline = json.status and (json.status == "OK" or json.status == "ok") and json.uptime ~= nil
-			callback(isOnline)
+			if isOnline then
+				print("✓ Server online (response dalam " .. string.format("%.2f", elapsedTime) .. " detik)")
+			else
+				warn("⚠️ Server status tidak valid")
+			end
+			callback(isOnline) -- Akan tampilkan login form atau maintenance
 		else
-			callback(false)
+			warn("❌ Invalid server response")
+			callback(false) -- Akan tampilkan maintenance
 		end
 	end)
 end
@@ -285,6 +337,8 @@ task.spawn(function()
 	local should_show_login = execute_auto_login()
 	
 	if should_show_login then
+		-- LoginScreen.Create akan menampilkan splash screen (loading) sambil menunggu health check
+		-- Health check akan dilakukan dengan timeout, dan loading akan stuck sampai selesai
 		LoginScreen.Create({
 			onKeyValid = on_key_valid,
 			checkKey = check_key_function,
