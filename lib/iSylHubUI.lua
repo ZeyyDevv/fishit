@@ -529,4 +529,9 @@ createSplash = function(onComplete, options)
         end)
     end
 
-    return
+    return {
+    CreateMaintenance = createMaintenanceScreen,
+    CreateAutoLogin = createAutoLoginScreen,
+    CreateSplash = createSplash,
+    Create = createLoginForm
+    }
