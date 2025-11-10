@@ -529,4 +529,4 @@ createSplash = function(onComplete, options)
         end)
     end
 
-    retu
+    return
