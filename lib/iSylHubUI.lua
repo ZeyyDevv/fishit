@@ -1,4 +1,4 @@
--- iSylHub Login Screen Library
+-- iSylHub Login Screen Library 
 local LoginScreen = {}
 
 -- Services
@@ -8,26 +8,76 @@ local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
--- Platform detection (from Beta.lua)
-local isMobile = not RunService:IsStudio() and table.find({Enum.Platform.IOS, Enum.Platform.Android}, UserInputService:GetPlatform()) ~= nil
+-- ProtectGui function (similar to FluentPlus)
+local ProtectGui = protectgui or (syn and syn.protect_gui) or function(gui)
+    if gui and typeof(gui) == "Instance" then
+        pcall(function()
+            gui.ResetOnSpawn = false
+            gui.DisplayOrder = 1000
+        end)
+    end
+end
+
+-- Platform detection (improved for all platforms)
+local function getPlatform()
+    if RunService:IsStudio() then
+        return false -- Desktop in studio
+    end
+    local platform = UserInputService:GetPlatform()
+    return table.find({Enum.Platform.IOS, Enum.Platform.Android}, platform) ~= nil
+end
+
+local isMobile = getPlatform()
 
 -- Responsive Size Definitions
 -- Ukuran untuk [Desktop] or [Mobile]. Mobile dibuat lebih sempit agar pas.
+-- Menggunakan UDim2 dengan kombinasi scale dan offset untuk responsif sempurna
+local function getResponsiveSize(mobileWidth, mobileHeight, desktopWidth, desktopHeight)
+    if isMobile then
+        -- Mobile: gunakan scale untuk adaptasi berbagai ukuran layar
+        return UDim2.new(0.85, 0, 0, mobileHeight) -- 85% lebar layar, tinggi tetap
+    else
+        return UDim2.fromOffset(desktopWidth, desktopHeight)
+    end
+end
+
 local SIZES = {
-    Maintenance = isMobile and UDim2.fromOffset(320, 290) or UDim2.fromOffset(380, 280),
-    AutoLogin   = isMobile and UDim2.fromOffset(320, 260) or UDim2.fromOffset(380, 250),
-    Splash      = isMobile and UDim2.fromOffset(320, 250) or UDim2.fromOffset(380, 240),
-    Login       = isMobile and UDim2.fromOffset(320, 220) or UDim2.fromOffset(380, 210)
+    Maintenance = getResponsiveSize(320, 290, 380, 280),
+    AutoLogin   = getResponsiveSize(320, 260, 380, 250),
+    Splash      = getResponsiveSize(320, 250, 380, 240),
+    Login       = getResponsiveSize(320, 220, 380, 210)
 }
 
 
--- Helper function to create UI element
+-- Helper function to create UI element (improved with error handling)
 local function createElement(className, props)
-    local inst = Instance.new(className)
+    local success, inst = pcall(function()
+        return Instance.new(className)
+    end)
+    
+    if not success or not inst then
+        warn("Failed to create instance:", className)
+        return nil
+    end
+    
     for k, v in pairs(props) do
-        inst[k] = v
+        pcall(function()
+            inst[k] = v
+        end)
     end
     return inst
+end
+
+-- Safe function to get PlayerGui (critical for mobile)
+local function getPlayerGui()
+    local player = Players.LocalPlayer
+    if not player then
+        player = Players:GetPlayers()[1]
+    end
+    if player then
+        return player:WaitForChild("PlayerGui", 10)
+    end
+    return nil
 end
 
 local function fadeInItems(parent)
@@ -46,12 +96,29 @@ local createLoginForm
 
 -- Create Maintenance Screen
 createMaintenanceScreen = function(onClose)
-    local Player = Players.LocalPlayer
+    local playerGui = getPlayerGui()
+    if not playerGui then
+        warn("Failed to get PlayerGui for MaintenanceScreen")
+        if onClose then onClose() end
+        return
+    end
+    
     local screen = createElement("ScreenGui", {
         Name = "MaintenanceScreen",
         ResetOnSpawn = false,
-        Parent = Player:WaitForChild("PlayerGui")
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        DisplayOrder = 1000,
+        Parent = playerGui
     })
+    
+    if not screen then
+        warn("Failed to create MaintenanceScreen")
+        if onClose then onClose() end
+        return
+    end
+    
+    -- Protect the GUI (important for mobile)
+    ProtectGui(screen)
     
     local frame = createElement("Frame", {
         Size = SIZES.Maintenance, -- MODIFIED: Menggunakan ukuran responsif
@@ -60,8 +127,16 @@ createMaintenanceScreen = function(onClose)
         BackgroundColor3 = Color3.fromRGB(18, 18, 18),
         BorderSizePixel = 0,
         ClipsDescendants = true,
+        Active = true, -- Important for mobile touch
         Parent = screen
     })
+    
+    if not frame then
+        warn("Failed to create frame for MaintenanceScreen")
+        screen:Destroy()
+        if onClose then onClose() end
+        return
+    end
     
     createElement("UICorner", {CornerRadius = UDim.new(0, 8), Parent = frame})
     createElement("UIStroke", {Thickness = 1, Color = Color3.fromRGB(60, 0, 0), Transparency = 0.5, Parent = frame})
@@ -80,41 +155,44 @@ createMaintenanceScreen = function(onClose)
     })
     
     local title = createElement("TextLabel", {
-        Size = UDim2.new(0.9, 0, 0, 35), -- MODIFIED: Menggunakan skala
+        Size = UDim2.new(0.9, 0, 0, isMobile and 40 or 35), -- MODIFIED: Lebih tinggi di mobile
         Position = UDim2.fromScale(0.5, 0.35),
         AnchorPoint = Vector2.new(0.5, 0.5),
         Text = "Under Maintenance",
         TextColor3 = Color3.fromRGB(255, 255, 255),
         BackgroundTransparency = 1,
         Font = Enum.Font.GothamBold,
-        TextSize = 22,
+        TextSize = isMobile and 24 or 22, -- Text lebih besar di mobile
+        TextScaled = false, -- Explicitly set to false for better control
         Parent = frame
     })
     
     local message = createElement("TextLabel", {
-        Size = UDim2.new(0.85, 0, 0, 90), -- MODIFIED: Lebih tinggi untuk mobile
+        Size = UDim2.new(0.85, 0, 0, isMobile and 100 or 90), -- MODIFIED: Lebih tinggi untuk mobile
         Position = UDim2.fromScale(0.5, 0.55),
         AnchorPoint = Vector2.new(0.5, 0.5),
         Text = "The server is currently undergoing maintenance. Please check back later.",
         TextColor3 = Color3.fromRGB(180, 180, 180),
         BackgroundTransparency = 1,
         Font = Enum.Font.Gotham,
-        TextSize = 14,
+        TextSize = isMobile and 15 or 14, -- Text lebih besar di mobile
         TextWrapped = true,
         TextYAlignment = Enum.TextYAlignment.Top,
         Parent = frame
     })
     
     local closeBtn = createElement("TextButton", {
-        Size = UDim2.new(isMobile and 0.8 or 0.5, 0, 0, 40), -- MODIFIED: Tombol lebih besar di mobile
+        Size = UDim2.new(isMobile and 0.85 or 0.5, 0, 0, isMobile and 45 or 40), -- MODIFIED: Tombol lebih besar di mobile
         Position = UDim2.fromScale(0.5, 0.82),
         AnchorPoint = Vector2.new(0.5, 0.5),
         Text = "Close",
         TextColor3 = Color3.fromRGB(255, 255, 255),
-        TextSize = 15,
+        TextSize = isMobile and 16 or 15, -- Text lebih besar di mobile untuk readability
         Font = Enum.Font.GothamMedium,
         BackgroundColor3 = Color3.fromRGB(120, 30, 30),
         BorderSizePixel = 0,
+        Active = true, -- Important for mobile touch
+        AutoButtonColor = false, -- Prevent default button color change
         Parent = frame
     })
     createElement("UICorner", {CornerRadius = UDim.new(0, 6), Parent = closeBtn})
@@ -134,16 +212,21 @@ createMaintenanceScreen = function(onClose)
     TweenService:Create(message, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
     TweenService:Create(closeBtn, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
     
-    -- Button hover
+    -- Button interactions (mobile-safe)
     local originalBtn = closeBtn.BackgroundColor3
-    closeBtn.MouseEnter:Connect(function()
-        TweenService:Create(closeBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(160, 40, 40)}):Play()
-    end)
-    closeBtn.MouseLeave:Connect(function()
-        TweenService:Create(closeBtn, TweenInfo.new(0.2), {BackgroundColor3 = originalBtn}):Play()
-    end)
     
-    closeBtn.MouseButton1Click:Connect(function()
+    -- Only add mouse hover events on non-mobile platforms
+    if not isMobile then
+        closeBtn.MouseEnter:Connect(function()
+            TweenService:Create(closeBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(160, 40, 40)}):Play()
+        end)
+        closeBtn.MouseLeave:Connect(function()
+            TweenService:Create(closeBtn, TweenInfo.new(0.2), {BackgroundColor3 = originalBtn}):Play()
+        end)
+    end
+    
+    -- Touch/Click event (works on all platforms)
+    closeBtn.Activated:Connect(function()
         TweenService:Create(frame, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
         TweenService:Create(icon, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
         TweenService:Create(title, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
@@ -158,12 +241,29 @@ end
 -- Create Auto-Login Screen (Interactive with controllable progress)
 createAutoLoginScreen = function(onComplete, options)
     options = options or {}
-    local Player = Players.LocalPlayer
+    local playerGui = getPlayerGui()
+    if not playerGui then
+        warn("Failed to get PlayerGui for AutoLoginScreen")
+        if onComplete then onComplete() end
+        return {}
+    end
+    
     local screen = createElement("ScreenGui", {
         Name = "AutoLoginScreen",
         ResetOnSpawn = false,
-        Parent = Player:WaitForChild("PlayerGui")
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        DisplayOrder = 1000,
+        Parent = playerGui
     })
+    
+    if not screen then
+        warn("Failed to create AutoLoginScreen")
+        if onComplete then onComplete() end
+        return {}
+    end
+    
+    -- Protect the GUI (important for mobile)
+    ProtectGui(screen)
     
     local frame = createElement("Frame", {
         Size = SIZES.AutoLogin, -- MODIFIED: Menggunakan ukuran responsif
@@ -172,34 +272,44 @@ createAutoLoginScreen = function(onComplete, options)
         BackgroundColor3 = Color3.fromRGB(18, 18, 18),
         BorderSizePixel = 0,
         ClipsDescendants = true,
+        Active = true, -- Important for mobile touch
         Parent = screen
     })
+    
+    if not frame then
+        warn("Failed to create frame for AutoLoginScreen")
+        screen:Destroy()
+        if onComplete then onComplete() end
+        return {}
+    end
     
     createElement("UICorner", {CornerRadius = UDim.new(0, 8), Parent = frame})
     createElement("UIStroke", {Thickness = 1, Color = Color3.fromRGB(60, 0, 0), Transparency = 0.5, Parent = frame})
     
     -- Title (no icon)
     local title = createElement("TextLabel", {
-        Size = UDim2.new(0.9, 0, 0, 40), -- MODIFIED: Menggunakan skala
+        Size = UDim2.new(0.9, 0, 0, isMobile and 45 or 40), -- MODIFIED: Lebih tinggi di mobile
         Position = UDim2.fromScale(0.5, 0.25),
         AnchorPoint = Vector2.new(0.5, 0.5),
         Text = "Auto-Login",
         TextColor3 = Color3.fromRGB(255, 255, 255),
         BackgroundTransparency = 1,
         Font = Enum.Font.GothamBold,
-        TextSize = 28,
+        TextSize = isMobile and 30 or 28, -- Text lebih besar di mobile
+        TextScaled = false,
         Parent = frame
     })
     
     local subtitle = createElement("TextLabel", {
-        Size = UDim2.new(0.9, 0, 0, 30), -- MODIFIED: Menggunakan skala
+        Size = UDim2.new(0.9, 0, 0, isMobile and 35 or 30), -- MODIFIED: Lebih tinggi di mobile
         Position = UDim2.fromScale(0.5, 0.42),
         AnchorPoint = Vector2.new(0.5, 0.5),
         Text = options.subtitle or "Welcome back! Verifying your key...",
         TextColor3 = Color3.fromRGB(180, 180, 180),
         BackgroundTransparency = 1,
         Font = Enum.Font.Gotham,
-        TextSize = 13,
+        TextSize = isMobile and 14 or 13, -- Text lebih besar di mobile
+        TextWrapped = true,
         Parent = frame
     })
     
@@ -223,14 +333,15 @@ createAutoLoginScreen = function(onComplete, options)
     createElement("UICorner", {CornerRadius = UDim.new(0.5, 0), Parent = loaderFill})
     
     local statusText = createElement("TextLabel", {
-        Size = UDim2.new(0.9, 0, 0, 20), -- MODIFIED: Menggunakan skala
+        Size = UDim2.new(0.9, 0, 0, isMobile and 25 or 20), -- MODIFIED: Lebih tinggi di mobile
         Position = UDim2.fromScale(0.5, 0.76),
         AnchorPoint = Vector2.new(0.5, 0),
         Text = options.initialStatus or "Checking cached key...",
         TextColor3 = Color3.fromRGB(150, 150, 150),
         BackgroundTransparency = 1,
         Font = Enum.Font.Gotham,
-        TextSize = 11,
+        TextSize = isMobile and 12 or 11, -- Text lebih besar di mobile
+        TextWrapped = true,
         Parent = frame
     })
     
@@ -344,59 +455,87 @@ end
 -- Create Splash Screen (Interactive with controllable progress)
 createSplash = function(onComplete, options)
     options = options or {}
-    local Player = Players.LocalPlayer
+    local playerGui = getPlayerGui()
+    if not playerGui then
+        warn("Failed to get PlayerGui for SplashScreen")
+        if onComplete then onComplete() end
+        return {}
+    end
+    
     local splashScreen = createElement("ScreenGui", {
         Name = "LoginSplash",
         ResetOnSpawn = false,
-        Parent = Player:WaitForChild("PlayerGui")
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        DisplayOrder = 1000,
+        Parent = playerGui
     })
+    
+    if not splashScreen then
+        warn("Failed to create SplashScreen")
+        if onComplete then onComplete() end
+        return {}
+    end
+    
+    -- Protect the GUI (important for mobile)
+    ProtectGui(splashScreen)
 
     local splashFrame = createElement("Frame", {
         Size = SIZES.Splash, -- MODIFIED: Menggunakan ukuran responsif
         Position = UDim2.fromScale(0.5, 0.5),
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundColor3 = Color3.fromRGB(18, 18, 18),
+        Active = true, -- Important for mobile touch
         Parent = splashScreen
     })
+    
+    if not splashFrame then
+        warn("Failed to create frame for SplashScreen")
+        splashScreen:Destroy()
+        if onComplete then onComplete() end
+        return {}
+    end
 
     createElement("UICorner", {CornerRadius = UDim.new(0, 8), Parent = splashFrame})
     createElement("UIStroke", {Thickness = 1, Color = Color3.fromRGB(60, 0, 0), Transparency = 0.5, Parent = splashFrame})
 
     local titleText = createElement("TextLabel", {
-        Size = UDim2.new(0.9, 0, 0, 40), -- MODIFIED: Menggunakan skala
+        Size = UDim2.new(0.9, 0, 0, isMobile and 45 or 40), -- MODIFIED: Lebih tinggi di mobile
         Position = UDim2.fromScale(0.5, 0.20),
         AnchorPoint = Vector2.new(0.5, 0),
         Text = "iSylHub Project",
         TextColor3 = Color3.fromRGB(255, 255, 255),
         BackgroundTransparency = 1,
         Font = Enum.Font.GothamBold,
-        TextSize = 26,
+        TextSize = isMobile and 28 or 26, -- Text lebih besar di mobile
         TextStrokeTransparency = 0.7,
         TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
+        TextScaled = false,
         Parent = splashFrame
     })
 
     local subtitleText = createElement("TextLabel", {
-        Size = UDim2.new(0.9, 0, 0, 20), -- MODIFIED: Menggunakan skala
+        Size = UDim2.new(0.9, 0, 0, isMobile and 25 or 20), -- MODIFIED: Lebih tinggi di mobile
         Position = UDim2.fromScale(0.5, 0.33),
         AnchorPoint = Vector2.new(0.5, 0),
         Text = "Premium Key System",
         TextColor3 = Color3.fromRGB(180, 180, 180),
         BackgroundTransparency = 1,
         Font = Enum.Font.Gotham,
-        TextSize = 13,
+        TextSize = isMobile and 14 or 13, -- Text lebih besar di mobile
+        TextWrapped = true,
         Parent = splashFrame
     })
 
     local statusText = createElement("TextLabel", {
-        Size = UDim2.new(0.9, 0, 0, 20), -- MODIFIED: Menggunakan skala
+        Size = UDim2.new(0.9, 0, 0, isMobile and 25 or 20), -- MODIFIED: Lebih tinggi di mobile
         Position = UDim2.fromScale(0.5, 0.50),
         AnchorPoint = Vector2.new(0.5, 0),
         Text = options.initialStatus or "Initializing...",
         TextColor3 = Color3.fromRGB(150, 150, 150),
         BackgroundTransparency = 1,
         Font = Enum.Font.Gotham,
-        TextSize = 11,
+        TextSize = isMobile and 12 or 11, -- Text lebih besar di mobile
+        TextWrapped = true,
         Parent = splashFrame
     })
 
@@ -419,14 +558,14 @@ createSplash = function(onComplete, options)
     createElement("UICorner", {CornerRadius = UDim.new(0.5, 0), Parent = loaderFill})
 
     local progressText = createElement("TextLabel", {
-        Size = UDim2.new(0.8, 0, 0, 20), -- MODIFIED: Menggunakan skala
+        Size = UDim2.new(0.8, 0, 0, isMobile and 25 or 20), -- MODIFIED: Lebih tinggi di mobile
         Position = UDim2.fromScale(0.5, 0.75),
         AnchorPoint = Vector2.new(0.5, 0),
         Text = "0%",
         TextColor3 = Color3.fromRGB(150, 150, 150),
         BackgroundTransparency = 1,
         Font = Enum.Font.Gotham,
-        TextSize = 12,
+        TextSize = isMobile and 13 or 12, -- Text lebih besar di mobile
         Parent = splashFrame
     })
 
@@ -529,9 +668,20 @@ createSplash = function(onComplete, options)
         end)
     end
 
-    return {
-    CreateMaintenance = createMaintenanceScreen,
-    CreateAutoLogin = createAutoLoginScreen,
-    CreateSplash = createSplash,
-    Create = createLoginForm
-    }
+    return control
+end
+
+-- Create Login Form (placeholder - implement as needed)
+createLoginForm = function(options)
+    -- TODO: Implement login form
+    warn("createLoginForm not yet implemented")
+    return {}
+end
+
+-- Export module
+LoginScreen.CreateMaintenance = createMaintenanceScreen
+LoginScreen.CreateAutoLogin = createAutoLoginScreen
+LoginScreen.CreateSplash = createSplash
+LoginScreen.Create = createLoginForm
+
+return LoginScreen
