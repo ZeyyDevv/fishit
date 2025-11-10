@@ -5,6 +5,21 @@ local LoginScreen = {}
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+-- Platform detection (from Beta.lua)
+local isMobile = not RunService:IsStudio() and table.find({Enum.Platform.IOS, Enum.Platform.Android}, UserInputService:GetPlatform()) ~= nil
+
+-- Responsive Size Definitions
+-- Ukuran untuk [Desktop] or [Mobile]. Mobile dibuat lebih sempit agar pas.
+local SIZES = {
+    Maintenance = isMobile and UDim2.fromOffset(320, 290) or UDim2.fromOffset(380, 280),
+    AutoLogin   = isMobile and UDim2.fromOffset(320, 260) or UDim2.fromOffset(380, 250),
+    Splash      = isMobile and UDim2.fromOffset(320, 250) or UDim2.fromOffset(380, 240),
+    Login       = isMobile and UDim2.fromOffset(320, 220) or UDim2.fromOffset(380, 210)
+}
+
 
 -- Helper function to create UI element
 local function createElement(className, props)
@@ -39,7 +54,7 @@ createMaintenanceScreen = function(onClose)
     })
     
     local frame = createElement("Frame", {
-        Size = UDim2.fromOffset(380, 280),
+        Size = SIZES.Maintenance, -- MODIFIED: Menggunakan ukuran responsif
         Position = UDim2.fromScale(0.5, 0.5),
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundColor3 = Color3.fromRGB(18, 18, 18),
@@ -65,7 +80,7 @@ createMaintenanceScreen = function(onClose)
     })
     
     local title = createElement("TextLabel", {
-        Size = UDim2.new(0, 280, 0, 35),
+        Size = UDim2.new(0.9, 0, 0, 35), -- MODIFIED: Menggunakan skala
         Position = UDim2.fromScale(0.5, 0.35),
         AnchorPoint = Vector2.new(0.5, 0.5),
         Text = "Under Maintenance",
@@ -77,7 +92,7 @@ createMaintenanceScreen = function(onClose)
     })
     
     local message = createElement("TextLabel", {
-        Size = UDim2.new(0.85, 0, 0, 80),
+        Size = UDim2.new(0.85, 0, 0, 90), -- MODIFIED: Lebih tinggi untuk mobile
         Position = UDim2.fromScale(0.5, 0.55),
         AnchorPoint = Vector2.new(0.5, 0.5),
         Text = "The server is currently undergoing maintenance. Please check back later.",
@@ -91,7 +106,7 @@ createMaintenanceScreen = function(onClose)
     })
     
     local closeBtn = createElement("TextButton", {
-        Size = UDim2.new(0, 120, 0, 40),
+        Size = UDim2.new(isMobile and 0.8 or 0.5, 0, 0, 40), -- MODIFIED: Tombol lebih besar di mobile
         Position = UDim2.fromScale(0.5, 0.82),
         AnchorPoint = Vector2.new(0.5, 0.5),
         Text = "Close",
@@ -151,7 +166,7 @@ createAutoLoginScreen = function(onComplete, options)
     })
     
     local frame = createElement("Frame", {
-        Size = UDim2.fromOffset(380, 250),
+        Size = SIZES.AutoLogin, -- MODIFIED: Menggunakan ukuran responsif
         Position = UDim2.fromScale(0.5, 0.5),
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundColor3 = Color3.fromRGB(18, 18, 18),
@@ -165,7 +180,7 @@ createAutoLoginScreen = function(onComplete, options)
     
     -- Title (no icon)
     local title = createElement("TextLabel", {
-        Size = UDim2.new(0, 280, 0, 40),
+        Size = UDim2.new(0.9, 0, 0, 40), -- MODIFIED: Menggunakan skala
         Position = UDim2.fromScale(0.5, 0.25),
         AnchorPoint = Vector2.new(0.5, 0.5),
         Text = "Auto-Login",
@@ -177,7 +192,7 @@ createAutoLoginScreen = function(onComplete, options)
     })
     
     local subtitle = createElement("TextLabel", {
-        Size = UDim2.new(0, 280, 0, 30),
+        Size = UDim2.new(0.9, 0, 0, 30), -- MODIFIED: Menggunakan skala
         Position = UDim2.fromScale(0.5, 0.42),
         AnchorPoint = Vector2.new(0.5, 0.5),
         Text = options.subtitle or "Welcome back! Verifying your key...",
@@ -190,7 +205,7 @@ createAutoLoginScreen = function(onComplete, options)
     
     -- Loading container
     local loaderContainer = createElement("Frame", {
-        Size = UDim2.new(0, 260, 0, 8),
+        Size = UDim2.new(0.8, 0, 0, 8), -- MODIFIED: Menggunakan skala
         Position = UDim2.fromScale(0.5, 0.65),
         AnchorPoint = Vector2.new(0.5, 0),
         BackgroundColor3 = Color3.fromRGB(30, 30, 30),
@@ -208,7 +223,7 @@ createAutoLoginScreen = function(onComplete, options)
     createElement("UICorner", {CornerRadius = UDim.new(0.5, 0), Parent = loaderFill})
     
     local statusText = createElement("TextLabel", {
-        Size = UDim2.new(0, 280, 0, 20),
+        Size = UDim2.new(0.9, 0, 0, 20), -- MODIFIED: Menggunakan skala
         Position = UDim2.fromScale(0.5, 0.76),
         AnchorPoint = Vector2.new(0.5, 0),
         Text = options.initialStatus or "Checking cached key...",
@@ -337,7 +352,7 @@ createSplash = function(onComplete, options)
     })
 
     local splashFrame = createElement("Frame", {
-        Size = UDim2.fromOffset(380, 240),
+        Size = SIZES.Splash, -- MODIFIED: Menggunakan ukuran responsif
         Position = UDim2.fromScale(0.5, 0.5),
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundColor3 = Color3.fromRGB(18, 18, 18),
@@ -348,7 +363,7 @@ createSplash = function(onComplete, options)
     createElement("UIStroke", {Thickness = 1, Color = Color3.fromRGB(60, 0, 0), Transparency = 0.5, Parent = splashFrame})
 
     local titleText = createElement("TextLabel", {
-        Size = UDim2.new(0, 220, 0, 40),
+        Size = UDim2.new(0.9, 0, 0, 40), -- MODIFIED: Menggunakan skala
         Position = UDim2.fromScale(0.5, 0.20),
         AnchorPoint = Vector2.new(0.5, 0),
         Text = "iSylHub Project",
@@ -362,7 +377,7 @@ createSplash = function(onComplete, options)
     })
 
     local subtitleText = createElement("TextLabel", {
-        Size = UDim2.new(0, 200, 0, 20),
+        Size = UDim2.new(0.9, 0, 0, 20), -- MODIFIED: Menggunakan skala
         Position = UDim2.fromScale(0.5, 0.33),
         AnchorPoint = Vector2.new(0.5, 0),
         Text = "Premium Key System",
@@ -374,7 +389,7 @@ createSplash = function(onComplete, options)
     })
 
     local statusText = createElement("TextLabel", {
-        Size = UDim2.new(0, 300, 0, 20),
+        Size = UDim2.new(0.9, 0, 0, 20), -- MODIFIED: Menggunakan skala
         Position = UDim2.fromScale(0.5, 0.50),
         AnchorPoint = Vector2.new(0.5, 0),
         Text = options.initialStatus or "Initializing...",
@@ -386,7 +401,7 @@ createSplash = function(onComplete, options)
     })
 
     local loaderContainer = createElement("Frame", {
-        Size = UDim2.new(0, 240, 0, 6),
+        Size = UDim2.new(0.8, 0, 0, 6), -- MODIFIED: Menggunakan skala
         Position = UDim2.fromScale(0.5, 0.65),
         AnchorPoint = Vector2.new(0.5, 0),
         BackgroundColor3 = Color3.fromRGB(30, 30, 30),
@@ -404,7 +419,7 @@ createSplash = function(onComplete, options)
     createElement("UICorner", {CornerRadius = UDim.new(0.5, 0), Parent = loaderFill})
 
     local progressText = createElement("TextLabel", {
-        Size = UDim2.new(0, 100, 0, 20),
+        Size = UDim2.new(0.8, 0, 0, 20), -- MODIFIED: Menggunakan skala
         Position = UDim2.fromScale(0.5, 0.75),
         AnchorPoint = Vector2.new(0.5, 0),
         Text = "0%",
@@ -514,314 +529,4 @@ createSplash = function(onComplete, options)
         end)
     end
 
-    return control
-end
-
--- Separate login form creation (MUST be defined before LoginScreen.Create)
-createLoginForm = function(options)
-    local onKeyValid = options.onKeyValid or function(key) print("Key:", key) end
-    local onClose = options.onClose or function() end
-    local checkKeyFunction = options.checkKey or function(key, callback) callback(false, "No validation") end
-    local getKeyUrl = options.getKeyUrl or "https://discord.gg/9B3sxTxD2E"
-    local Player = Players.LocalPlayer
-    
-    -- Login Form
-        local screen = createElement("ScreenGui", {Name = "LoginScreen", ResetOnSpawn = false, Parent = Player:WaitForChild("PlayerGui")})
-        
-        local frame = createElement("Frame", {
-            Size = UDim2.fromOffset(380, 210),
-            Position = UDim2.fromScale(0.5, 0.5),
-            AnchorPoint = Vector2.new(0.5, 0.5),
-            BackgroundColor3 = Color3.fromRGB(18, 18, 18),
-            BorderSizePixel = 0,
-            ClipsDescendants = true,
-            Parent = screen
-        })
-        
-        createElement("UICorner", {CornerRadius = UDim.new(0, 8), Parent = frame})
-        createElement("UIStroke", {Thickness = 1, Color = Color3.fromRGB(60, 0, 0), Transparency = 0.5, Parent = frame})
-        
-        -- Topbar
-        local topbar = createElement("Frame", {Size = UDim2.new(1, 0, 0, 40), BackgroundTransparency = 1, Parent = frame})
-        local title = createElement("TextLabel", {Size = UDim2.new(1, -50, 1, 0), Position = UDim2.new(0, 20, 0, 0), Text = "Login", TextColor3 = Color3.fromRGB(200, 200, 200), BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 18, TextXAlignment = Enum.TextXAlignment.Left, Parent = topbar})
-        local closeBtn = createElement("TextButton", {Size = UDim2.new(0, 25, 0, 25), Position = UDim2.new(1, -30, 0, 7.5), Text = "×", TextColor3 = Color3.fromRGB(180, 180, 180), TextSize = 20, Font = Enum.Font.Gotham, BackgroundTransparency = 1, AutoButtonColor = false, Parent = topbar})
-        
-        -- Content
-        local content = createElement("Frame", {Size = UDim2.new(1, -40, 0, 180), Position = UDim2.new(0, 20, 0, 50), BackgroundTransparency = 1, Parent = frame})
-        
-        local keyInput = createElement("TextBox", {
-            Size = UDim2.new(1, 0, 0, 45),
-            Position = UDim2.new(0, 0, 0, 20),
-            PlaceholderText = "Enter key",
-            Text = "",
-            TextColor3 = Color3.fromRGB(220, 220, 220),
-            TextSize = 16,
-            Font = Enum.Font.Gotham,
-            PlaceholderColor3 = Color3.fromRGB(120, 120, 120),
-            BackgroundColor3 = Color3.fromRGB(30, 30, 30),
-            BorderSizePixel = 0,
-            ClearTextOnFocus = false,
-            Parent = content
-        })
-        createElement("UICorner", {CornerRadius = UDim.new(0, 4), Parent = keyInput})
-        
-        local inputUnderline = createElement("Frame", {Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -1), BackgroundColor3 = Color3.fromRGB(150, 20, 20), BorderSizePixel = 0, Parent = keyInput})
-        
-        local status = createElement("TextLabel", {
-            Size = UDim2.new(1, 0, 0, 20),
-            Position = UDim2.new(0, 0, 0, 70),
-            Text = "",
-            TextColor3 = Color3.fromRGB(180, 180, 180),
-            BackgroundTransparency = 1,
-            Font = Enum.Font.Gotham,
-            TextSize = 12,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            TextWrapped = true,
-            Parent = content
-        })
-        
-        local buttonsContainer = createElement("Frame", {Size = UDim2.new(1, 0, 0, 45), Position = UDim2.new(0, 0, 0, 100), BackgroundTransparency = 1, Parent = content})
-        
-        local submitBtn = createElement("TextButton", {
-            Size = UDim2.new(0.47, 0, 1, 0),
-            Text = "Continue",
-            TextColor3 = Color3.fromRGB(255, 255, 255),
-            TextSize = 15,
-            Font = Enum.Font.GothamMedium,
-            BackgroundColor3 = Color3.fromRGB(180, 20, 20),
-            BorderSizePixel = 0,
-            Parent = buttonsContainer
-        })
-        createElement("UICorner", {CornerRadius = UDim.new(0, 4), Parent = submitBtn})
-        
-        local getKeyBtn = createElement("TextButton", {
-            Size = UDim2.new(0.47, 0, 1, 0),
-            Position = UDim2.new(1, 0, 0, 0),
-            AnchorPoint = Vector2.new(1, 0),
-            Text = "Get Key",
-            TextColor3 = Color3.fromRGB(255, 255, 255),
-            TextSize = 15,
-            Font = Enum.Font.Gotham,
-            BackgroundColor3 = Color3.fromRGB(120, 30, 30),
-            BorderSizePixel = 0,
-            Parent = buttonsContainer
-        })
-        createElement("UICorner", {CornerRadius = UDim.new(0, 4), Parent = getKeyBtn})
-        createElement("UIGradient", {Rotation = 135, Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(140, 30, 30)), ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 15, 15))}), Parent = getKeyBtn})
-        
-        -- Hide elements initially
-        for _, v in pairs(topbar:GetDescendants()) do
-            if v:IsA("TextLabel") or v:IsA("TextButton") then v.TextTransparency = 1 end
-        end
-        for _, v in pairs(content:GetDescendants()) do
-            if v:IsA("TextLabel") or v:IsA("TextBox") or v:IsA("TextButton") then v.TextTransparency = 1 end
-        end
-        
-        -- Fade in
-        task.wait(0.1)
-        fadeInItems(topbar)
-        fadeInItems(content)
-        
-        -- Close button
-        local function closeScreen()
-            TweenService:Create(frame, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
-            for _, v in pairs(frame:GetDescendants()) do
-                if v:IsA("TextLabel") or v:IsA("TextBox") or v:IsA("TextButton") then
-                    TweenService:Create(v, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
-                end
-            end
-            task.wait(0.35)
-            screen:Destroy()
-            onClose()
-        end
-        
-        closeBtn.MouseEnter:Connect(function()
-            TweenService:Create(closeBtn, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(180, 20, 20)}):Play()
-        end)
-        closeBtn.MouseLeave:Connect(function()
-            TweenService:Create(closeBtn, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
-        end)
-        closeBtn.MouseButton1Click:Connect(closeScreen)
-        
-        -- Input focus
-        local originalUnderline = inputUnderline.BackgroundColor3
-        keyInput.Focused:Connect(function()
-            TweenService:Create(inputUnderline, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(220, 40, 40), Size = UDim2.new(1, 0, 0, 2)}):Play()
-        end)
-        keyInput.FocusLost:Connect(function()
-            TweenService:Create(inputUnderline, TweenInfo.new(0.3), {BackgroundColor3 = originalUnderline, Size = UDim2.new(1, 0, 0, 1)}):Play()
-        end)
-        
-        -- Buttons hover
-        local originalBtn = submitBtn.BackgroundColor3
-        submitBtn.MouseEnter:Connect(function()
-            TweenService:Create(submitBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(200, 30, 30)}):Play()
-        end)
-        submitBtn.MouseLeave:Connect(function()
-            TweenService:Create(submitBtn, TweenInfo.new(0.2), {BackgroundColor3 = originalBtn}):Play()
-        end)
-        
-        local originalGetKey = getKeyBtn.BackgroundColor3
-        getKeyBtn.MouseEnter:Connect(function()
-            TweenService:Create(getKeyBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(145, 35, 35)}):Play()
-        end)
-        getKeyBtn.MouseLeave:Connect(function()
-            TweenService:Create(getKeyBtn, TweenInfo.new(0.2), {BackgroundColor3 = originalGetKey}):Play()
-        end)
-        
-        -- Get key button
-        getKeyBtn.MouseButton1Click:Connect(function()
-            if setclipboard then
-                pcall(setclipboard, getKeyUrl)
-                status.Text = "Link copied to clipboard!"
-                status.TextColor3 = Color3.fromRGB(100, 180, 100)
-            else
-                status.Text = "Visit: " .. getKeyUrl
-                status.TextColor3 = Color3.fromRGB(180, 140, 60)
-            end
-        end)
-        
-        -- Submit handler with custom check function
-        submitBtn.MouseButton1Click:Connect(function()
-            local key = keyInput.Text:gsub("%s+", "")
-            
-            if key == "" then
-                status.Text = "Please enter a key"
-                status.TextColor3 = Color3.fromRGB(180, 60, 60)
-                return
-            end
-            
-            submitBtn.Active = false
-            submitBtn.Text = "Checking..."
-            status.Text = "Verifying..."
-            status.TextColor3 = Color3.fromRGB(200, 140, 60)
-            
-            -- Use custom check function
-            checkKeyFunction(key, function(success, message)
-                if success then
-                    status.Text = message or "✓ Verified"
-                    status.TextColor3 = Color3.fromRGB(80, 180, 80)
-                    task.wait(0.5)
-                    TweenService:Create(frame, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
-                    for _, v in pairs(frame:GetDescendants()) do
-                        if v:IsA("TextLabel") or v:IsA("TextBox") or v:IsA("TextButton") then
-                            TweenService:Create(v, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
-                        end
-                    end
-                    task.wait(0.35)
-                    screen:Destroy()
-                    onKeyValid(key)
-                else
-                    status.Text = message or "Invalid key"
-                    status.TextColor3 = Color3.fromRGB(180, 60, 60)
-                    submitBtn.Text = "Continue"
-                    submitBtn.Active = true
-                end
-            end)
-        end)
-        
-        keyInput.FocusLost:Connect(function(enterPressed)
-            if enterPressed then submitBtn:FireButtonClick() end
-        end)
-end
-
--- Main function to create login screen
-function LoginScreen.Create(options)
-    options = options or {}
-    local onKeyValid = options.onKeyValid or function(key) print("Key:", key) end
-    local onClose = options.onClose or function() end
-    local checkKeyFunction = options.checkKey or function(key, callback) callback(false, "No validation") end
-    local getKeyUrl = options.getKeyUrl or "https://discord.gg/9B3sxTxD2E"
-    local healthCheckFunction = options.healthCheck
-    
-    local Player = Players.LocalPlayer
-    
-    -- Check server health first
-    task.spawn(function()
-        local isOnline = false
-        if healthCheckFunction then
-            -- Tampilkan loading screen dengan progress yang dapat dikontrol
-            local loadingControl = createSplash(nil, {
-                manualControl = true,
-                initialStatus = "Menunggu response dari server..."
-            })
-            
-            -- Update progress sambil menunggu health check
-            loadingControl.UpdateProgress(10, true)
-            loadingControl.UpdateStatus("Menunggu response dari server...", Color3.fromRGB(200, 140, 60))
-            
-            -- Pass loading control to health check function if it accepts it
-            if healthCheckFunction then
-                -- Try to call with loading control (for interactive progress updates)
-                local success, result = pcall(function()
-                    return healthCheckFunction(function(online)
-                        isOnline = online
-                        
-                        if isOnline then
-                            -- Server online
-                            loadingControl.UpdateProgress(50, true)
-                            loadingControl.UpdateStatus("Server online, memuat...", Color3.fromRGB(100, 180, 100))
-                            task.wait(0.3)
-                            
-                            loadingControl.Complete()
-                            
-                            -- Show splash then login form
-                            task.wait(0.5)
-                            createSplash(function()
-                                createLoginForm(options)
-                            end)
-                        else
-                            -- Server offline
-                            loadingControl.UpdateProgress(100, true)
-                            loadingControl.UpdateStatus("Server sedang maintenance", Color3.fromRGB(180, 60, 60))
-                            task.wait(0.5)
-                            
-                            loadingControl.Complete()
-                            
-                            -- Show maintenance screen
-                            task.wait(0.5)
-                            createMaintenanceScreen(onClose)
-                        end
-                    end, loadingControl)
-                end)
-                
-                -- If health check doesn't accept loading control, use default callback
-                if not success then
-                    healthCheckFunction(function(online)
-                        isOnline = online
-                        
-                        if isOnline then
-                            loadingControl.UpdateProgress(50, true)
-                            loadingControl.UpdateStatus("Server online, memuat...", Color3.fromRGB(100, 180, 100))
-                            task.wait(0.3)
-                            loadingControl.Complete()
-                            task.wait(0.5)
-                            createSplash(function()
-                                createLoginForm(options)
-                            end)
-                        else
-                            loadingControl.UpdateProgress(100, true)
-                            loadingControl.UpdateStatus("Server sedang maintenance", Color3.fromRGB(180, 60, 60))
-                            task.wait(0.5)
-                            loadingControl.Complete()
-                            task.wait(0.5)
-                            createMaintenanceScreen(onClose)
-                        end
-                    end)
-                end
-            end
-        else
-            -- No health check, assume online
-            createSplash(function()
-                createLoginForm(options)
-            end)
-        end
-    end)
-end
-
--- Export CreateAutoLogin function
-function LoginScreen.CreateAutoLogin(onComplete, options)
-    return createAutoLoginScreen(onComplete, options)
-end
-
-return LoginScreen
+    retu
